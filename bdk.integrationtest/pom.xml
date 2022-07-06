@@ -17,7 +17,9 @@
 	<description>Demo project for Spring Boot</description>
 
 	<properties>
-		<java.version>11</java.version>
+		<java.version>8</java.version>
+		<compiler.plugin.version>3.8.1</compiler.plugin.version>
+		<java-compile.version>1.8</java-compile.version>
 		<swagger-annotations-version>1.5.22</swagger-annotations-version>
 		<swagger.codegen.plugin.version>2.4.9</swagger.codegen.plugin.version>
 		<spec.source>${project.basedir}/src/main/resources/agent-api-restricted.yaml</spec.source>
@@ -128,6 +130,16 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${compiler.plugin.version}</version>
+				<configuration>
+					<source>${java-compile.version}</source>
+					<target>${java-compile.version}</target>
+				</configuration>
 			</plugin>
 
 			<plugin>
