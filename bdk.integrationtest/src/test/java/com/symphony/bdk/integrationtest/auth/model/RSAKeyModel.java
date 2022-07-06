@@ -1,5 +1,6 @@
 package com.symphony.bdk.integrationtest.auth.model;
 
+import lombok.Getter;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
@@ -12,15 +13,20 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+@Getter
 public class RSAKeyModel {
 
+  private PublicKey publicKey = null;
   private PrivateKey privateKey = null;
+  private String formattedPublicKey = null;
   private String formattedPrivateKey = null;
+
 
   /**
    * Enables us to save on test context keys that are on files inside the Test Resources we're using
@@ -32,7 +38,8 @@ public class RSAKeyModel {
   public void loadKeyFromFile(String filePath, RSAKeyType rsaKeyType) throws InvalidKeySpecException, NoSuchAlgorithmException, IOException {
     switch (rsaKeyType) {
       case PUBLIC:
-        //TODO: to implement
+        this.publicKey = (PublicKey) getKeyFromFile(RSAKeyType.PUBLIC, filePath);
+        this.formattedPublicKey = addBeginAndEndOnRSAKey(RSAKeyType.PUBLIC, publicKey);
         break;
       case PRIVATE:
         this.privateKey = (PrivateKey) getKeyFromFile(RSAKeyType.PRIVATE, filePath);
@@ -41,10 +48,6 @@ public class RSAKeyModel {
       default:
         throw new RuntimeException("Invalid value for RSAKeyType!");
     }
-  }
-
-  public String getFormattedPrivateKey() {
-    return this.formattedPrivateKey;
   }
 
   private String addBeginAndEndOnRSAKey(RSAKeyType keyType, Key rsaKey) {

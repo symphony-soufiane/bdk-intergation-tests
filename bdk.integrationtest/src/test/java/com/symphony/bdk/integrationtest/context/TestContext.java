@@ -3,13 +3,18 @@ package com.symphony.bdk.integrationtest.context;
 import com.symphony.bdk.integrationtest.context.pod.Pod;
 import com.symphony.bdk.integrationtest.context.pod.PodConfigAdminInfo;
 import com.symphony.bdk.integrationtest.context.pod.PodConfigUrlInfo;
+import com.symphony.bdk.integrationtest.exception.ApiException;
+import com.symphony.security.exceptions.SymphonyEncryptionException;
+import com.symphony.security.exceptions.SymphonyInputException;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +27,8 @@ import java.util.Set;
 public class TestContext {
   private static final Logger LOG = LoggerFactory.getLogger(TestContext.class);
 
+  //TODO: make BDK_INTEGRATION_TESTS_BOT_USERNAME configurable
+  private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME = "botfortestY";
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
   private static final String PODS_ENVIRONMENT_FILE_PATH = "/pod_configs/%s.yaml";
   private static final String EPOD_DEPLOYMENT_NAME = "myDeployment name";//TODO: make it configurable
@@ -33,6 +40,7 @@ public class TestContext {
 
   private TestContext(Map<String, Map<String, Object>> pods, String epodDeploymentName) {
     List<String> podsNameList = new ArrayList<>(pods.keySet());
+
     for (String podName : podsNameList) {
       Map<String, Object> configFileObjectMap = pods.get(podName);
       String podConfigFormatString = "";
@@ -44,7 +52,25 @@ public class TestContext {
       Pod pod =
           buildPodObjectFromYamlConfigFile(podName, configFileObjectMap, podConfigFormatString);
 
-      privatePods.add(pod); //TODO: handle private and public pods, get pod info to do so
+      try {
+        pod.authenticateAdmin();
+
+        // Create service account for integration tests
+        if (!pod.isApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_BOT_USERNAME)) {
+          Long apiAdminServiceAccountUserId =
+              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_BOT_USERNAME);
+          pod.associateRsaKeyToApiAdminUser(apiAdminServiceAccountUserId,
+              BDK_INTEGRATION_TESTS_BOT_USERNAME);
+        }
+
+        pod.authenticateApiAdminIfNeeded();
+
+        privatePods.add(pod); //TODO: handle private and public pods, get pod info to do so
+      } catch (GeneralSecurityException | SymphonyInputException | IOException | ApiException |
+          SymphonyEncryptionException | __login.api.package_.client.ApiException |
+          com.symphony.api.pod.client.ApiException e) {
+        e.printStackTrace();
+      }
     }
 
     int totalPods = privatePods.size() + publicPods.size();
@@ -85,7 +111,7 @@ public class TestContext {
         stringObjectMap.get("ephemeral") != null ? (Boolean) stringObjectMap.get("ephemeral")
             : false;
 
-    return new Pod(podName, ephemeral, adminConfig, urlConfig);
+    return new Pod(podName, ephemeral, adminConfig, urlConfig, BDK_INTEGRATION_TESTS_BOT_USERNAME);
   }
 
   private String resolvePodComponentUrl(Map<String, Object> configMap, String fieldName,
