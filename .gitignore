@@ -14,3 +14,5 @@ buildNumber.properties
 bdk.integrationtest/src/test/resources/rsa/*
 
 bdk.integrationtest/.idea/*
+bdk.integrationtest/.mvn/*
+*.DS_Store
