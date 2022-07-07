@@ -28,7 +28,8 @@ public class TestContext {
   private static final Logger LOG = LoggerFactory.getLogger(TestContext.class);
 
   //TODO: make BDK_INTEGRATION_TESTS_BOT_USERNAME configurable
-  private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME = "botfortestY";
+  private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME =
+      "bdk-integration-tests-service-user";
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
   private static final String PODS_ENVIRONMENT_FILE_PATH = "/pod_configs/%s.yaml";
   private static final String EPOD_DEPLOYMENT_NAME = "myDeployment name";//TODO: make it configurable
