@@ -14,20 +14,20 @@ public class StreamUtils {
   public static V3RoomDetail createRoom(String name)
       throws com.symphony.api.pod.client.ApiException {
     StreamsApi streamsApi = new StreamsApi();
-    streamsApi.getApiClient().setBasePath(TestContext.getPrivatePods().getPodBaseUrl());
+    streamsApi.getApiClient().setBasePath(TestContext.getPod().getPodBaseUrl());
 
     V3RoomAttributes roomAttributes =
         new V3RoomAttributes().name(name).description("Integration test room")._public(true);
     return streamsApi.v3RoomCreatePost(roomAttributes,
-        TestContext.getPrivatePods().getApiAdminTokens().getSessionToken());
+        TestContext.getPod().getApiAdminTokens().getSessionToken());
   }
 
   public static void addRoomMember(String roomId, Long userId)
       throws com.symphony.api.pod.client.ApiException {
     RoomMembershipApi roomMembershipApi = new RoomMembershipApi();
-    roomMembershipApi.getApiClient().setBasePath(TestContext.getPrivatePods().getPodBaseUrl());
+    roomMembershipApi.getApiClient().setBasePath(TestContext.getPod().getPodBaseUrl());
 
     roomMembershipApi.v1RoomIdMembershipAddPost(roomId, new UserId().id(userId),
-        TestContext.getPrivatePods().getApiAdminTokens().getSessionToken());
+        TestContext.getPod().getApiAdminTokens().getSessionToken());
   }
 }

@@ -24,18 +24,10 @@ import java.util.stream.Collectors;
 class SlashCommandActivityTests {
 
 	private static final Long JBOT_USERID = 347583113335589L; //TODO: make it configurable
-	private static final Long BOT_FOR_TEST = 347583113335582L;
 	private static V3RoomDetail testStream;
-
-	//TODO: remove this
-	private static void setProperties() {
-		System.setProperty("podsEnvironment", "develop");
-		System.setProperty("usingPods", "develop");
-	}
 
 	@BeforeAll
 	static void initContext() {
-		setProperties();
 		TestContext.createOrGetInstance();
 	}
 
@@ -52,7 +44,8 @@ class SlashCommandActivityTests {
 
 			// Add members to the room
 			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), JBOT_USERID);
-			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), BOT_FOR_TEST);
+			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(),
+					TestContext.getApiAdminServiceAccountUserId());
 
 			// Send message
 			V4Message v4Message =

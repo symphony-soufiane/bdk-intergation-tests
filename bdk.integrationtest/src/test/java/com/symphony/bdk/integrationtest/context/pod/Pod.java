@@ -102,7 +102,7 @@ public class Pod {
     }
   }
 
-  public boolean isApiAdminServiceAccountExist(String serviceAccountName)
+  public long getApiAdminServiceAccountExist(String serviceAccountName)
       throws com.symphony.api.pod.client.ApiException {
     ApiClient apiClient = new ApiClient().setBasePath(getPodBaseUrl());
     UsersApi usersApi = new UsersApi(apiClient);
@@ -111,10 +111,11 @@ public class Pod {
 
     if (adminServiceAccountUser != null) {
       LOGGER.info("Api Admin Service account {} already exists", serviceAccountName);
+      return adminServiceAccountUser.getId();
     } else {
       LOGGER.info("Api Admin Service account {} does not exist", serviceAccountName);
+      return -1L;
     }
-    return adminServiceAccountUser != null;
   }
 
   public Long createApiAdminServiceAccount(String apiAdminUsername) throws ApiException {

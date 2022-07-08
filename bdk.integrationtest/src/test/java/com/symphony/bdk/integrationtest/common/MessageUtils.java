@@ -12,21 +12,21 @@ public class MessageUtils {
 
   public static V4Message sendMessage(String message, String streamId) throws ApiException {
     MessagesApi messagesApi = new MessagesApi();
-    messagesApi.getApiClient().setBasePath(TestContext.getPrivatePods().getAgentBaseUrl());
+    messagesApi.getApiClient().setBasePath(TestContext.getPod().getAgentBaseUrl());
 
     return messagesApi.v4StreamSidMessageCreatePost(streamId,
-        TestContext.getPrivatePods().getApiAdminTokens().getSessionToken(),
-        TestContext.getPrivatePods().getApiAdminTokens().getKeyManagerToken(),
+        TestContext.getPod().getApiAdminTokens().getSessionToken(),
+        TestContext.getPod().getApiAdminTokens().getKeyManagerToken(),
         message, null, null, null, null);
   }
 
   public static V4MessageList getMessages(String streamId, Long since) throws ApiException {
     MessagesApi messagesApi = new MessagesApi();
-    messagesApi.getApiClient().setBasePath(TestContext.getPrivatePods().getAgentBaseUrl());
+    messagesApi.getApiClient().setBasePath(TestContext.getPod().getAgentBaseUrl());
 
     return messagesApi.v4StreamSidMessageGet(streamId, since,
-        TestContext.getPrivatePods().getApiAdminTokens().getSessionToken(),
-        TestContext.getPrivatePods().getApiAdminTokens().getKeyManagerToken(),
+        TestContext.getPod().getApiAdminTokens().getSessionToken(),
+        TestContext.getPod().getApiAdminTokens().getKeyManagerToken(),
         null, null);
   }
 }

@@ -27,7 +27,6 @@ import java.util.Set;
 public class TestContext {
   private static final Logger LOG = LoggerFactory.getLogger(TestContext.class);
 
-  //TODO: make BDK_INTEGRATION_TESTS_BOT_USERNAME configurable
   private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME =
       "bdk-integration-tests-service-user";
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
@@ -36,8 +35,8 @@ public class TestContext {
 
   private static TestContext INSTANCE = null;
 
-  private static Set<Pod> privatePods = new LinkedHashSet<>();
-  private static Set<Pod> publicPods = new LinkedHashSet<>();
+  private static Set<Pod> pods = new LinkedHashSet<>();
+  private static Long apiAdminServiceAccountUserId;
 
   private TestContext(Map<String, Map<String, Object>> pods, String epodDeploymentName) {
     List<String> podsNameList = new ArrayList<>(pods.keySet());
@@ -57,8 +56,10 @@ public class TestContext {
         pod.authenticateAdmin();
 
         // Create service account for integration tests
-        if (!pod.isApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_BOT_USERNAME)) {
-          Long apiAdminServiceAccountUserId =
+        apiAdminServiceAccountUserId =
+            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_BOT_USERNAME);
+        if (apiAdminServiceAccountUserId == -1L) {
+          apiAdminServiceAccountUserId =
               pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_BOT_USERNAME);
           pod.associateRsaKeyToApiAdminUser(apiAdminServiceAccountUserId,
               BDK_INTEGRATION_TESTS_BOT_USERNAME);
@@ -66,7 +67,7 @@ public class TestContext {
 
         pod.authenticateApiAdminIfNeeded();
 
-        privatePods.add(pod); //TODO: handle private and public pods, get pod info to do so
+        TestContext.pods.add(pod); //TODO: handle private and public pods, get pod info to do so
       } catch (GeneralSecurityException | SymphonyInputException | IOException | ApiException |
           SymphonyEncryptionException | __login.api.package_.client.ApiException |
           com.symphony.api.pod.client.ApiException e) {
@@ -74,11 +75,9 @@ public class TestContext {
       }
     }
 
-    int totalPods = privatePods.size() + publicPods.size();
-    LOG.info("STARTING {} PRIVATE {} PUBLIC PODS, FOR A TOTAL OF {} PODS", privatePods.size(),
-        publicPods.size(), totalPods);
+    LOG.info("STARTING {} PODS", TestContext.pods.size());
 
-    if (totalPods == 0) {
+    if (TestContext.pods.isEmpty()) {
       throw new RuntimeException("Cannot run without any pods");
     }
   }
@@ -187,9 +186,13 @@ public class TestContext {
     return INSTANCE;
   }
 
-  public static Pod getPrivatePods() {
-    return privatePods.stream()
+  public static Pod getPod() {
+    return pods.stream()
         .findFirst()
         .orElse(null);
+  }
+
+  public static Long getApiAdminServiceAccountUserId() {
+    return apiAdminServiceAccountUserId;
   }
 }
