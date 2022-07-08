@@ -11,6 +11,7 @@ targetPodAdminPassword = "OHaXXjI+vQ+2WDNZG6yCnQ"
 bdkIntegrationTestsBotUsername = "bdk-integration-tests-service-user"
 def privateKeyContent = "default-value"
 def publicKeyContent = "default-value"
+def botPid = "default-value"
 
 /* BEGIN OF EXECUTION FLOW */
 node() {
@@ -59,7 +60,8 @@ node() {
                     checkoutJbotBranch("symphony-soufiane", "main")
                     copyContentToFolder("jbot/rsa", "privatekey.pem", privateKeyContent)
                     updateJbotConfig(targetPodHost.replace("https://", ""))
-                    sh "cd jbot && ./gradlew bootRun"
+                    sh "cd jbot && ./gradlew bootRun &"
+                    botPid = sh(script:"echo \$!", returnStdout: true)
                 }
             }
 

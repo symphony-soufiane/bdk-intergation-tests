@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @SpringBootTest
 class SlashCommandActivityTests {
 
-	private static final Long JBOT_USERID = 347583113335478L; //TODO: make it configurable
+	private static final Long JBOT_USERID = 347583113335589L; //TODO: make it configurable
 	private static final Long BOT_FOR_TEST = 347583113335582L;
 	private static V3RoomDetail testStream;
 
