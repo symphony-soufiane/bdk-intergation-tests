@@ -29,6 +29,10 @@ public class TestContext {
 
   private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME =
       "bdk-integration-tests-service-user";
+  private static final String BDK_INTEGRATION_TESTS_JBOT_USERNAME =
+      "bdk-integration-tests-service-user-jbot";
+  private static final String BDK_INTEGRATION_TESTS_PBOT_USERNAME =
+      "bdk-integration-tests-service-user-pbot";
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
   private static final String PODS_ENVIRONMENT_FILE_PATH = "/pod_configs/%s.yaml";
   private static final String EPOD_DEPLOYMENT_NAME = "myDeployment name";//TODO: make it configurable
@@ -53,6 +57,7 @@ public class TestContext {
           buildPodObjectFromYamlConfigFile(podName, configFileObjectMap, podConfigFormatString);
 
       try {
+        // Authenticate admin user account for integration tests
         pod.authenticateAdmin();
 
         // Create service account for integration tests
@@ -65,6 +70,27 @@ public class TestContext {
               BDK_INTEGRATION_TESTS_BOT_USERNAME);
         }
 
+        // Create service account for JBot
+        long jbotServiceAccountUserId =
+            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+        if (jbotServiceAccountUserId == -1L) {
+          jbotServiceAccountUserId =
+              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+          pod.associateRsaKeyToApiAdminUser(jbotServiceAccountUserId,
+              BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+        }
+
+        // Create service account for JBot
+        long pbotServiceAccountUserId =
+            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_PBOT_USERNAME);
+        if (pbotServiceAccountUserId == -1L) {
+          pbotServiceAccountUserId =
+              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_PBOT_USERNAME);
+          pod.associateRsaKeyToApiAdminUser(pbotServiceAccountUserId,
+              BDK_INTEGRATION_TESTS_PBOT_USERNAME);
+        }
+
+
         pod.authenticateApiAdminIfNeeded();
 
         TestContext.pods.add(pod); //TODO: handle private and public pods, get pod info to do so
@@ -74,8 +100,6 @@ public class TestContext {
         e.printStackTrace();
       }
     }
-
-    LOG.info("STARTING {} PODS", TestContext.pods.size());
 
     if (TestContext.pods.isEmpty()) {
       throw new RuntimeException("Cannot run without any pods");
