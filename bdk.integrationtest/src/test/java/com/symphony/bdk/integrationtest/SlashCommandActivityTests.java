@@ -23,12 +23,13 @@ import java.util.stream.Collectors;
 @SpringBootTest
 class SlashCommandActivityTests {
 
-	private static final Long JBOT_USERID = 347583113335589L; //TODO: make it configurable
 	private static V3RoomDetail testStream;
+	private static Long botUserId;
 
 	@BeforeAll
 	static void initContext() {
 		TestContext.createOrGetInstance();
+		botUserId = Long.valueOf(System.getProperty(TestContext.WORKER_BOT_USERID_PROPERTY_KEY));
 	}
 
 	@DisplayName("Given a bot and a slash command '/ping' with mention required, "
@@ -43,14 +44,14 @@ class SlashCommandActivityTests {
 					StreamUtils.createRoom("BDK_INTEGRATION_TESTS_RUN_" + new RandomString().nextString());
 
 			// Add members to the room
-			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), JBOT_USERID);
+			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), botUserId);
 			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(),
 					TestContext.getApiAdminServiceAccountUserId());
 
 			// Send message
 			V4Message v4Message =
 					MessageUtils.sendMessage(
-							String.format("<messageML><mention uid=\"%s\"/>/ping</messageML>", JBOT_USERID),
+							String.format("<messageML><mention uid=\"%s\"/>/ping</messageML>", botUserId),
 							testStream.getRoomSystemInfo().getId());
 
 			// Wait for the bot to react

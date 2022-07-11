@@ -8,7 +8,8 @@ targetPodHost = "https://develop.symphony.com"
 targetPodAdminUsername = "bdk-integration-tests-user-3"
 targetPodAdminPassword = "OHaXXjI+vQ+2WDNZG6yCnQ"
 
-bdkIntegrationTestsBotUsername = "bdk-integration-tests-service-user"
+bdkIntegrationTestsBotUsername = "bdk-integration-tests-service-user-TEST1"
+workerBotUsername = "bdk-integration-tests-worker-bot-TEST1"
 def privateKeyContent = "default-value"
 def publicKeyContent = "default-value"
 def botPid = "default-value"
@@ -36,20 +37,28 @@ node() {
                 }
             }
 
-            stage("Create JBot and PBot service accounts") {
-                println("to be implemented")
-            }
-
             stage("Checkout and configure bdk-intergation-tests repository") {
                 withCredentials([
                         [$class: 'StringBinding', credentialsId: 'symphonyjenkinsauto-token', variable: 'TOKEN']]) {
 
                     sh "mkdir bdk-intergation-tests"
                     checkoutBdkIntergationTestsBranch("symphony-soufiane", "main")
+
                     copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-private.pem", privateKeyContent)
                     copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-public.pem", publicKeyContent)
+
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${workerBotUsername}-private.pem", privateKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${workerBotUsername}-public.pem", publicKeyContent)
+
                     updateBdkIntergationTestsConfig(targetPodName, targetPodHost, targetPodAdminUsername, targetPodAdminPassword)
                 }
+            }
+
+            stage("Create JBot, PBot and integration test bot service accounts") {
+                sh "cd bdk-intergation-tests//bdk.integrationtest/src/test/java/com/symphony/bdk/integrationtest \
+                        && javac InitContextMain.java \
+                        && cd ../../../.. \
+                        && java com/symphony/bdk/integrationtest/InitContextMain"
             }
 
             stage("Checkout and configure JBot repository") {

@@ -28,11 +28,12 @@ public class TestContext {
   private static final Logger LOG = LoggerFactory.getLogger(TestContext.class);
 
   private static final String BDK_INTEGRATION_TESTS_BOT_USERNAME =
-      "bdk-integration-tests-service-user";
-  private static final String BDK_INTEGRATION_TESTS_JBOT_USERNAME =
-      "bdk-integration-tests-service-user-jbot";
-  private static final String BDK_INTEGRATION_TESTS_PBOT_USERNAME =
-      "bdk-integration-tests-service-user-pbot";
+      "bdk-integration-tests-service-user-TEST1";
+  private static final String BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME =
+      "bdk-integration-tests-worker-bot-TEST1";
+
+  public static final String WORKER_BOT_USERID_PROPERTY_KEY = "bot.userid";
+
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
   private static final String PODS_ENVIRONMENT_FILE_PATH = "/pod_configs/%s.yaml";
   private static final String EPOD_DEPLOYMENT_NAME = "myDeployment name";//TODO: make it configurable
@@ -72,24 +73,14 @@ public class TestContext {
 
         // Create service account for JBot
         long jbotServiceAccountUserId =
-            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
         if (jbotServiceAccountUserId == -1L) {
           jbotServiceAccountUserId =
-              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
           pod.associateRsaKeyToApiAdminUser(jbotServiceAccountUserId,
-              BDK_INTEGRATION_TESTS_JBOT_USERNAME);
+              BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
         }
-
-        // Create service account for JBot
-        long pbotServiceAccountUserId =
-            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_PBOT_USERNAME);
-        if (pbotServiceAccountUserId == -1L) {
-          pbotServiceAccountUserId =
-              pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_PBOT_USERNAME);
-          pod.associateRsaKeyToApiAdminUser(pbotServiceAccountUserId,
-              BDK_INTEGRATION_TESTS_PBOT_USERNAME);
-        }
-
+        System.setProperty(WORKER_BOT_USERID_PROPERTY_KEY, String.valueOf(jbotServiceAccountUserId));
 
         pod.authenticateApiAdminIfNeeded();
 
