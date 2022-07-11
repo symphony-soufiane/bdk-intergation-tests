@@ -30,8 +30,6 @@ class SlashCommandActivityTests {
 
 	@BeforeAll
 	static void initContext() {
-		System.setProperty("podsEnvironment", "develop");
-		System.setProperty("usingPods", "develop");
 		TestContext.createOrGetInstance();
 		integrationTestsBotUserId =
 				TestContext.getApiAdminServiceAccountUserId(UserTypeEnum.BDK_INTEGRATION_TESTS_BOT);
