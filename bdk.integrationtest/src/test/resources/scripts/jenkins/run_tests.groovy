@@ -44,21 +44,21 @@ node() {
                     sh "mkdir bdk-intergation-tests"
                     checkoutBdkIntergationTestsBranch("symphony-soufiane", "main")
 
-                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-private.pem", privateKeyContent)
-                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-public.pem", publicKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${bdkIntegrationTestsBotUsername}-private.pem", privateKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${bdkIntegrationTestsBotUsername}-public.pem", publicKeyContent)
 
-                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${workerBotUsername}-private.pem", privateKeyContent)
-                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${workerBotUsername}-public.pem", publicKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${workerBotUsername}-private.pem", privateKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${workerBotUsername}-public.pem", publicKeyContent)
 
                     updateBdkIntergationTestsConfig(targetPodName, targetPodHost, targetPodAdminUsername, targetPodAdminPassword)
                 }
             }
 
             stage("Create JBot, PBot and integration test bot service accounts") {
-                sh "cd bdk-intergation-tests//bdk.integrationtest/src/test/java/com/symphony/bdk/integrationtest \
-                        && javac InitContextMain.java \
-                        && cd ../../../.. \
-                        && java com/symphony/bdk/integrationtest/InitContextMain"
+                sh "cd bdk-intergation-tests/bdk.integrationtest \
+                        && mvn clean install -DskipTests=true \
+                        && java -jar target/bdk.integrationtest-0.0.1-SNAPSHOT.jar
+                "
             }
 
             stage("Checkout and configure JBot repository") {
@@ -128,12 +128,12 @@ def copyContentToFile(folder, filename, content) {
 
 def updateBdkIntergationTestsConfig(podName, podHost, adminUsername, adminPassword) {
     sh "cd bdk-intergation-tests \
-            && cd bdk.integrationtest/src/test/resources/pod_configs \
+            && cd bdk.integrationtest/src/main/resources/pod_configs \
             && cat ${podName}.yaml"
-    sh "./yq -i '.pods.${podName}.url = \"${podHost}\"' bdk-intergation-tests/bdk.integrationtest/src/test/resources/pod_configs/${podName}.yaml"
-    sh "./yq -i '.pods.${podName}.adminUsername = \"${adminUsername}\"' bdk-intergation-tests/bdk.integrationtest/src/test/resources/pod_configs/${podName}.yaml"
-    sh "./yq -i '.pods.${podName}.adminPassword = \"${adminPassword}\"' bdk-intergation-tests/bdk.integrationtest/src/test/resources/pod_configs/${podName}.yaml"
-    sh "cat bdk-intergation-tests/bdk.integrationtest/src/test/resources/pod_configs/${podName}.yaml"
+    sh "./yq -i '.pods.${podName}.url = \"${podHost}\"' bdk-intergation-tests/bdk.integrationtest/src/main/resources/pod_configs/${podName}.yaml"
+    sh "./yq -i '.pods.${podName}.adminUsername = \"${adminUsername}\"' bdk-intergation-tests/bdk.integrationtest/src/main/resources/pod_configs/${podName}.yaml"
+    sh "./yq -i '.pods.${podName}.adminPassword = \"${adminPassword}\"' bdk-intergation-tests/bdk.integrationtest/src/main/resources/pod_configs/${podName}.yaml"
+    sh "cat bdk-intergation-tests/bdk.integrationtest/src/main/resources/pod_configs/${podName}.yaml"
 }
 
 def updateJbotConfig(podHost) {
