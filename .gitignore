@@ -12,6 +12,9 @@ buildNumber.properties
 
 #Ignore rsa folder
 bdk.integrationtest/src/test/resources/rsa/*
+bdk.integrationtest/src/main/resources/rsa/*
+bdk.integrationtest/src/test/resources/pod_configs/*
+bdk.integrationtest/src/main/resources/pod_configs/*
 
 bdk.integrationtest/.idea/*
 bdk.integrationtest/.mvn/*
