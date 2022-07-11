@@ -1,8 +1,0 @@
-pods:
-  develop:
-    ephemeral: false
-    url: https://develop.symphony.com
-    adminUsername: SET_ADMIN_USERNAME_HERE
-    adminPassword: SET_ADMIN_PASSWORD_HERE
-    sessionAuthUrl: https://develop.symphony.com:8444/sessionauth
-    keyAuthUrl: https://develop.symphony.com:8444/keyauth

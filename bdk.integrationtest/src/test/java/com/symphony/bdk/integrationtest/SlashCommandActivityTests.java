@@ -9,6 +9,7 @@ import com.symphony.api.pod.model.V3RoomDetail;
 import com.symphony.bdk.integrationtest.common.MessageUtils;
 import com.symphony.bdk.integrationtest.common.StreamUtils;
 import com.symphony.bdk.integrationtest.context.TestContext;
+import com.symphony.bdk.integrationtest.context.UserTypeEnum;
 
 import net.bytebuddy.utility.RandomString;
 import org.assertj.core.api.Fail;
@@ -24,12 +25,17 @@ import java.util.stream.Collectors;
 class SlashCommandActivityTests {
 
 	private static V3RoomDetail testStream;
-	private static Long botUserId;
+	private static Long workerBotUserId;
+	private static Long integrationTestsBotUserId;
 
 	@BeforeAll
 	static void initContext() {
+		System.setProperty("podsEnvironment", "develop");
+		System.setProperty("usingPods", "develop");
 		TestContext.createOrGetInstance();
-		botUserId = Long.valueOf(System.getProperty(TestContext.WORKER_BOT_USERID_PROPERTY_KEY));
+		integrationTestsBotUserId =
+				TestContext.getApiAdminServiceAccountUserId(UserTypeEnum.BDK_INTEGRATION_TESTS_BOT);
+		workerBotUserId = TestContext.getApiAdminServiceAccountUserId(UserTypeEnum.WORKER_BOT);
 	}
 
 	@DisplayName("Given a bot and a slash command '/ping' with mention required, "
@@ -44,14 +50,13 @@ class SlashCommandActivityTests {
 					StreamUtils.createRoom("BDK_INTEGRATION_TESTS_RUN_" + new RandomString().nextString());
 
 			// Add members to the room
-			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), botUserId);
-			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(),
-					TestContext.getApiAdminServiceAccountUserId());
+			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), integrationTestsBotUserId);
+			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), workerBotUserId);
 
 			// Send message
 			V4Message v4Message =
 					MessageUtils.sendMessage(
-							String.format("<messageML><mention uid=\"%s\"/>/ping</messageML>", botUserId),
+							String.format("<messageML><mention uid=\"%s\"/>/ping</messageML>", workerBotUserId),
 							testStream.getRoomSystemInfo().getId());
 
 			// Wait for the bot to react

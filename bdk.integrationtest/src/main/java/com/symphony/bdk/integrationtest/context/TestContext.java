@@ -19,10 +19,8 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class TestContext {
   private static final Logger LOG = LoggerFactory.getLogger(TestContext.class);
@@ -32,16 +30,15 @@ public class TestContext {
   private static final String BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME =
       "bdk-integration-tests-worker-bot-TEST1";
 
-  public static final String WORKER_BOT_USERID_PROPERTY_KEY = "bot.userid";
-
   private static final String PODS_ENVIRONMENT_FILE = "podsEnvironment";
   private static final String PODS_ENVIRONMENT_FILE_PATH = "/pod_configs/%s.yaml";
   private static final String EPOD_DEPLOYMENT_NAME = "myDeployment name";//TODO: make it configurable
 
   private static TestContext INSTANCE = null;
 
-  private static Set<Pod> pods = new LinkedHashSet<>();
+  private static Pod pod;
   private static Long apiAdminServiceAccountUserId;
+  private static Long apiWorkerServiceAccountUserId;
 
   private TestContext(Map<String, Map<String, Object>> pods, String epodDeploymentName) {
     List<String> podsNameList = new ArrayList<>(pods.keySet());
@@ -54,7 +51,7 @@ public class TestContext {
         podConfigFormatString = epodDeploymentName;
       }
 
-      Pod pod =
+      pod =
           buildPodObjectFromYamlConfigFile(podName, configFileObjectMap, podConfigFormatString);
 
       try {
@@ -63,7 +60,7 @@ public class TestContext {
 
         // Create service account for integration tests
         apiAdminServiceAccountUserId =
-            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_BOT_USERNAME);
+            getApiAdminServiceAccountUserId(UserTypeEnum.BDK_INTEGRATION_TESTS_BOT);
         if (apiAdminServiceAccountUserId == -1L) {
           apiAdminServiceAccountUserId =
               pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_BOT_USERNAME);
@@ -72,19 +69,16 @@ public class TestContext {
         }
 
         // Create service account for JBot
-        long jbotServiceAccountUserId =
-            pod.getApiAdminServiceAccountExist(BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
-        if (jbotServiceAccountUserId == -1L) {
-          jbotServiceAccountUserId =
+        apiWorkerServiceAccountUserId =
+            getApiAdminServiceAccountUserId(UserTypeEnum.WORKER_BOT);
+        if (apiWorkerServiceAccountUserId == -1L) {
+          apiWorkerServiceAccountUserId =
               pod.createApiAdminServiceAccount(BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
-          pod.associateRsaKeyToApiAdminUser(jbotServiceAccountUserId,
+          pod.associateRsaKeyToApiAdminUser(apiWorkerServiceAccountUserId,
               BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
         }
-        System.setProperty(WORKER_BOT_USERID_PROPERTY_KEY, String.valueOf(jbotServiceAccountUserId));
 
         pod.authenticateApiAdminIfNeeded();
-
-        TestContext.pods.add(pod); //TODO: handle private and public pods, get pod info to do so
       } catch (GeneralSecurityException | SymphonyInputException | IOException | ApiException |
           SymphonyEncryptionException | __login.api.package_.client.ApiException |
           com.symphony.api.pod.client.ApiException e) {
@@ -92,7 +86,7 @@ public class TestContext {
       }
     }
 
-    if (TestContext.pods.isEmpty()) {
+    if (TestContext.pod == null) {
       throw new RuntimeException("Cannot run without any pods");
     }
   }
@@ -202,12 +196,43 @@ public class TestContext {
   }
 
   public static Pod getPod() {
-    return pods.stream()
-        .findFirst()
-        .orElse(null);
+    return pod;
   }
 
-  public static Long getApiAdminServiceAccountUserId() {
-    return apiAdminServiceAccountUserId;
+  public static Long getApiAdminServiceAccountUserId(UserTypeEnum userType) {
+    Long uid = null;
+    switch (userType) {
+      case BDK_INTEGRATION_TESTS_BOT:
+        uid = apiAdminServiceAccountUserId;
+        break;
+      case WORKER_BOT:
+        uid = apiWorkerServiceAccountUserId;
+        break;
+    }
+
+    if (uid != null) {
+      return uid;
+    }
+
+    if (pod == null) {
+      return null;
+    }
+
+    switch (userType) {
+      case BDK_INTEGRATION_TESTS_BOT:
+        try {
+          return pod.getApiAdminServiceAccountUid(BDK_INTEGRATION_TESTS_BOT_USERNAME);
+        } catch (com.symphony.api.pod.client.ApiException e) {
+          return null;
+        }
+      case WORKER_BOT:
+        try {
+          return pod.getApiAdminServiceAccountUid(BDK_INTEGRATION_TESTS_WORKER_BOT_USERNAME);
+        } catch (com.symphony.api.pod.client.ApiException e) {
+          return null;
+        }
+    }
+
+    return null;
   }
 }

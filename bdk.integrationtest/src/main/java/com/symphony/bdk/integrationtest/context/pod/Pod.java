@@ -102,7 +102,7 @@ public class Pod {
     }
   }
 
-  public long getApiAdminServiceAccountExist(String serviceAccountName)
+  public long getApiAdminServiceAccountUid(String serviceAccountName)
       throws com.symphony.api.pod.client.ApiException {
     ApiClient apiClient = new ApiClient().setBasePath(getPodBaseUrl());
     UsersApi usersApi = new UsersApi(apiClient);
