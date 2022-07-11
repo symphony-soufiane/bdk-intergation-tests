@@ -55,10 +55,10 @@ node() {
             }
 
             stage("Create JBot, PBot and integration test bot service accounts") {
+                configureMavenSettings()
                 sh "cd bdk-intergation-tests/bdk.integrationtest \
-                        && mvn clean install -DskipTests=true \
-                        && java -jar target/bdk.integrationtest-0.0.1-SNAPSHOT.jar
-                "
+                        && mvn clean install -DskipTests=true -B -Pci \
+                        && java -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${targetPodName}' -DusingPods='${targetPodName}' -jar target/bdk.integrationtest-0.0.1-SNAPSHOT.jar"
             }
 
             stage("Checkout and configure JBot repository") {
@@ -81,7 +81,6 @@ node() {
             stage("Executing BDK Integration Tests") {
                 withCredentials([
                         [$class: 'StringBinding', credentialsId: 'symphonyjenkinsauto-token', variable: 'TOKEN']]) {
-                    configureMavenSettings()
                     executeBdkIntegrationTests(targetPodName)
                 }
             }
