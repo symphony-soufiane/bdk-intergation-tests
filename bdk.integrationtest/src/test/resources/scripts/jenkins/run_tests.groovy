@@ -46,8 +46,8 @@ node() {
 
                     sh "mkdir bdk-intergation-tests"
                     checkoutBdkIntergationTestsBranch("symphony-soufiane", "main")
-                    copyContentToFolder("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-private.pem", privateKeyContent)
-                    copyContentToFolder("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-public.pem", publicKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-private.pem", privateKeyContent)
+                    copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/test/resources/rsa", "${bdkIntegrationTestsBotUsername}-public.pem", publicKeyContent)
                     updateBdkIntergationTestsConfig(targetPodName, targetPodHost, targetPodAdminUsername, targetPodAdminPassword)
                 }
             }
@@ -58,7 +58,7 @@ node() {
 
                     sh "mkdir jbot"
                     checkoutJbotBranch("symphony-soufiane", "main")
-                    copyContentToFolder("jbot/rsa", "privatekey.pem", privateKeyContent)
+                    copyContentToFile("jbot/rsa", "privatekey.pem", privateKeyContent)
                     updateJbotConfig(targetPodHost.replace("https://", ""))
                     sh "cd jbot && ./gradlew bootRun &"
                     botPid = sh(script:"echo \$!", returnStdout: true)
@@ -109,7 +109,7 @@ def checkoutJbotBranch(org, branch) {
             && git checkout ${branch}"
 }
 
-def copyContentToFolder(folder, filename, content) {
+def copyContentToFile(folder, filename, content) {
     echo "Copying content to ${folder}/${filename}"
 
     sh "cd ${folder} \
