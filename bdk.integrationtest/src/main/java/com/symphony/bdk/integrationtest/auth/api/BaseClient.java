@@ -5,6 +5,7 @@ import com.symphony.bdk.integrationtest.auth.model.Request;
 import com.symphony.bdk.integrationtest.exception.ApiException;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -26,6 +27,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
+@Getter
 public class BaseClient<T> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseClient.class);

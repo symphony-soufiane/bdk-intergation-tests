@@ -2,6 +2,7 @@ package com.symphony.bdk.integrationtest.auth.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import javax.ws.rs.core.MultivaluedMap;
 
 @Getter
 @Setter
+@ToString
 public class Request<T> {
   private String path;
   private Entity<T> payload;
