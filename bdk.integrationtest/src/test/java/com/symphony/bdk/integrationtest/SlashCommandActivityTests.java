@@ -28,12 +28,13 @@ class SlashCommandActivityTests {
 	private static Long workerBotUserId;
 	private static Long integrationTestsBotUserId;
 
+
 	@BeforeAll
 	static void initContext() {
-		TestContext.createOrGetInstance();
+		TestContext testContext = TestContext.createOrGetInstance();
 		integrationTestsBotUserId =
-				TestContext.getApiAdminServiceAccountUserId(UserTypeEnum.BDK_INTEGRATION_TESTS_BOT);
-		workerBotUserId = TestContext.getApiAdminServiceAccountUserId(UserTypeEnum.WORKER_BOT);
+				testContext.getApiAdminServiceAccountUserId(UserTypeEnum.BDK_INTEGRATION_TESTS_BOT);
+		workerBotUserId = testContext.getApiAdminServiceAccountUserId(UserTypeEnum.WORKER_BOT);
 	}
 
 	@DisplayName("Given a bot and a slash command '/ping' with mention required, "

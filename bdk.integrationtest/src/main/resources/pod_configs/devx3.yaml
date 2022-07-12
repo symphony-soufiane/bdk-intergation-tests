@@ -1,0 +1,8 @@
+pods:
+  devx3:
+    ephemeral: false
+    url: https://devx3.symphony.com
+    adminUsername: SET_ADMIN_USERNAME_HERE
+    adminPassword: SET_ADMIN_PASSWORD_HERE
+    sessionAuthUrl: https://devx3.symphony.com:8444/sessionauth
+    keyAuthUrl: https://devx3.symphony.com:8444/keyauth

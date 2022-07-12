@@ -99,7 +99,7 @@ node() {
                 configureMavenSettings()
                 sh "cd bdk-intergation-tests/bdk.integrationtest \
                         && mvn clean install -DskipTests=true -B -Pci \
-                        && java -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${env.TARGET_POD_NAME}' -DusingPods='${env.TARGET_POD_NAME}' -jar target/bdk.integrationtest-0.0.1-SNAPSHOT.jar"
+                        && java -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${env.TARGET_POD_NAME}' -DusingPods='${env.TARGET_POD_NAME}' -DintegrationTestsBotUsername='${env.INTEGRATION_TESTS_BOT_USERNAME}' -DintegrationTestsWorkerUsername='${env.WORKER_BOT_USERNAME}' -jar target/bdk.integrationtest-0.0.1-SNAPSHOT.jar"
             }
 
             stage("Checkout and configure JBot repository") {
@@ -224,7 +224,7 @@ def updatePbotConfig(podHost) {
 
 def executeBdkIntegrationTests(podName) {
     echo "Executing BDK Integration Tests"
-    sh  "cd bdk-intergation-tests/bdk.integrationtest && mvn clean install -B -Pci -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${podName}' -DusingPods='${podName}' "
+    sh  "cd bdk-intergation-tests/bdk.integrationtest && mvn clean install -B -Pci -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${podName}' -DusingPods='${podName}' -DintegrationTestsBotUsername='${env.INTEGRATION_TESTS_BOT_USERNAME}' -DintegrationTestsWorkerUsername='${env.WORKER_BOT_USERNAME}'"
 }
 
 def configureMavenSettings() {
