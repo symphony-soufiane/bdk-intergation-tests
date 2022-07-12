@@ -152,8 +152,6 @@ public class AuthInternalApi {
 
     String urlEncodedUsername = URLEncoder.encode(userName, ENCODING_CHARSET);
     request.setPath(String.format(SALT_ENDPOINT, authType.getEndpointPath(), urlEncodedUsername));
-    System.out.println("request: " + request);
-    System.out.println("client base url: " + client.getBaseUrl());
     SaltResponse response = (SaltResponse) client.doPost(request);
 
     return response.getSalt();
