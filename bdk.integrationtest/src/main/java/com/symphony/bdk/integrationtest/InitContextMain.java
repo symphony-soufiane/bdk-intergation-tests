@@ -12,14 +12,6 @@ public class InitContextMain {
   private static final Logger LOG = LoggerFactory.getLogger(InitContextMain.class);
 
   public static void main(String[] args) {
-
-    System.setProperty("podsEnvironment", "devx3");
-    System.setProperty("usingPods", "devx3");
-    System.setProperty("integrationTestsWorkerUsername", "fortestinngbot");
-    System.setProperty("integrationTestsBotUsername", "botfortestinng");
-
-
-
     LOG.info("Initializing the context and user/service accounts");
     TestContext.createOrGetInstance();
   }
