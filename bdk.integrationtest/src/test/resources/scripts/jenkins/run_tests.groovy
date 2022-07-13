@@ -20,6 +20,8 @@ env.RUN_PYTHON_BOT = env.RUN_PYTHON_BOT ?: true
 env.BDK_INTEGRATION_TESTS_BRANCH = env.BDK_INTEGRATION_TESTS_BRANCH ?: "main"
 env.BDK_INTEGRATION_TESTS_ORG = env.BDK_INTEGRATION_TESTS_ORG ?: "SymphonyOSF"
 
+def WEBHOOK_URL = "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
+def BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE = "Error to force bot termination"
 def privateKeyContent = "default-value"
 def publicKeyContent = "default-value"
 def botPid = "default-value"
@@ -27,7 +29,7 @@ def buildStages = []
 
 /* BEGIN OF EXECUTION FLOW */
 node() {
-    def environment = []
+    parallelsAlwaysFailFast()
     runWithFrozenHashes([]) {
         try {
             stage("Install required packages") {
@@ -113,36 +115,60 @@ node() {
                 }
             }
 
-            stage("Parallel run: Tests x JBot") {
-                if (env.RUN_JAVA_BOT.toBoolean() == true) {
-                    buildStagesMap = [:]
-                    buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
-                    buildStagesMap.put("JBOT", jbotStage())
-                    buildStages.add(buildStagesMap)
+            try {
+                stage("Parallel run: Tests x JBot") {
+                    if (env.RUN_JAVA_BOT.toBoolean() == true) {
+                        buildStagesMap = [:]
+                        buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
+                        buildStagesMap.put("JBOT", jbotStage())
+                        buildStages.add(buildStagesMap)
+                    }
+                }
+
+                for (buildStage in buildStages) {
+                    buildStage.failFast = true
+                    parallel(buildStage)
+                }
+            } catch(error) {
+                if (BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE == "${error.message}") {
+                    echo "Expected error caught: JBot has been forced to terminate as integration tests are done."
+                } else {
+                    echo "Unexpected error caught."
+                    throw error
                 }
             }
 
-            for (buildStage in buildStages) {
-                parallel(buildStage)
-            }
-            buildStages = []
-
-            stage("Parallel run: Tests x PBot") {
-                if (env.RUN_PYTHON_BOT.toBoolean() == true) {
-                    buildStages = []
-                    buildStagesMap = [:]
-                    buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
-                    buildStagesMap.put("PBOT", pbotStage())
-                    buildStages.add(buildStagesMap)
+            try {
+                // reinitialise buildStages for next parallel runs
+                buildStages = []
+                stage("Parallel run: Tests x PBot") {
+                    if (env.RUN_PYTHON_BOT.toBoolean() == true) {
+                        buildStages = []
+                        buildStagesMap = [:]
+                        buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
+                        buildStagesMap.put("PBOT", pbotStage())
+                        buildStages.add(buildStagesMap)
+                    }
                 }
-            }
 
-            for (buildStage in buildStages) {
-                parallel(buildStage)
+                for (buildStage in buildStages) {
+                    buildStage.failFast = true
+                    parallel(buildStage)
+                }
+            } catch(error) {
+                if (BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE == "${error.message}") {
+                    echo "Expected error caught: PBot has been forced to terminate as integration tests are done."
+                } else {
+                    echo "Unexpected error caught."
+                    throw error
+                }
             }
 
             stage("Report results") {
                 println("to be implemented")
+                sbeBranch = env.EPOD1_SBE_ORG + "/" + env.EPOD1_SBE_BRANCH
+                notificationMessage = getMessageMLNotificationTemplate("reportNotification.html", sbeBranch, env.AGENT_GIT)
+                sendMessageMLNotification(WEBHOOK_URL, notificationMessage)
             }
         } catch (error) {
             echo "Error while running the pipeline: ${error}"
@@ -243,6 +269,23 @@ def integrationTestsStage(targetPodName) {
         stage("Running BDK Integration tests") {
             sh 'sleep 60' // Sleep 60s to give more time to JBot/Pbot to be up
             executeBdkIntegrationTests(targetPodName)
+            throw new Exception(BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE)
         }
     }
+}
+
+def getMessageMLNotificationTemplate(templateName, sbeBranch, agentBranch) {
+    Date date = new Date()
+    def currentDay = new SimpleDateFormat("MM/dd/yyyy").format(date)
+    def messageML = readFile encoding: 'UTF-8', file: "scripts/jenkins/templates/$templateName"
+    messageML = messageML.replace('{SBE_BRANCH}', sbeBranch)
+    messageML = messageML.replace('{AGENT_BRANCH}', agentBranch)
+    return messageML
+}
+
+def sendMessageMLNotification(webhookUrl, message) {
+    println message
+    //adds the string content to a file in the workspace. It allows to not have to escape characters for the command
+    writeFile file: 'message-ml-content.xml', text: message, encoding: 'UTF-8'
+    sh "curl -L -X POST -H 'Content-Type: multipart/form-data' -F 'message=@message-ml-content.xml' ${webhookUrl}"
 }
