@@ -30,35 +30,22 @@ node() {
     def environment = []
     runWithFrozenHashes([]) {
         try {
-            stage("Bump parameters") {
-                println env.TARGET_POD_NAME
-                println env.TARGET_POD_HOST
-                println env.CREATE_EPODS
-                println env.EPOD1_SBE_ORG
-                println env.EPOD1_SBE_BRANCH
-                println env.EPOD2_SBE_ORG
-                println env.EPOD2_SBE_BRANCH
-                println env.AGENT_GIT
-                println env.EPODS_TIME_TO_LIVE
-                println env.TARGET_POD_ADMIN_USERNAME
-                println env.TARGET_POD_ADMIN_PASSWORD
-                println env.INTEGRATION_TESTS_BOT_USERNAME
-                println env.WORKER_BOT_USERNAME
-                println env.RUN_JAVA_BOT
-                println env.RUN_PYTHON_BOT
-                println env.BDK_INTEGRATION_TESTS_BRANCH
-                println env.BDK_INTEGRATION_TESTS_ORG
-            }
             stage("Install required packages") {
                 if (env.RUN_PYTHON_BOT.toBoolean()==true) {
-                    //sh 'apt-get update -y'
-                    //sh 'apt update -y'
+                    sh "apt-get install -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
+                        libssl-dev libsqlite3-dev libreadline-dev libffi-dev curl libbz2-dev \
+                        && wget https://www.python.org/ftp/python/3.10.3/Python-3.10.3.tgz \
+                       && tar -zxvf Python-3.10.3.tgz \
+                       && cd Python-3.10.3 \
+                       && ./configure --enable-optimizations && make && make install \
+                       && update-alternatives --install /usr/bin/python python /usr/local/bin/python3.10 1 \
+                       && update-alternatives --install /usr/bin/pip pip /usr/local/bin/pip3.10 1 \
+                       && apt-get remove -y build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
+                       libssl-dev libsqlite3-dev libreadline-dev libffi-dev libbz2-dev \
+                       && apt-get autoremove -y && apt-get autoclean -y"
 
-                    //sh 'apt-get install python3-pip -y'
-                    //sh 'apt-get install python3.9 -y'
-                    //sh 'pip3 install --upgrade "pip < 20.3.4"'
-                    //sh 'pip3 --version'
-                    //sh 'python3 --version'
+                       sh "python3 --version"
+                       sh "pip3 --version"
                 }
 
                 sh 'wget -nc -q https://github.com/mikefarah/yq/releases/download/v4.18.1/yq_linux_amd64'
@@ -140,19 +127,19 @@ node() {
             }
             buildStages = []
 
-            //stage("Parallel run: Tests x PBot") {
-                //if (env.RUN_PYTHON_BOT.toBoolean() == true) {
-                //    buildStages = []
-                //    buildStagesMap = [:]
-                //    buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
-                //    buildStagesMap.put("PBOT", pbotStage())
-                //    buildStages.add(buildStagesMap)
-                //}
-            //}
+            stage("Parallel run: Tests x PBot") {
+                if (env.RUN_PYTHON_BOT.toBoolean() == true) {
+                    buildStages = []
+                    buildStagesMap = [:]
+                    buildStagesMap.put("BDK_INTEGRATION_TESTS", integrationTestsStage(env.TARGET_POD_NAME))
+                    buildStagesMap.put("PBOT", pbotStage())
+                    buildStages.add(buildStagesMap)
+                }
+            }
 
-            //for (buildStage in buildStages) {
-            //    parallel(buildStage)
-            //}
+            for (buildStage in buildStages) {
+                parallel(buildStage)
+            }
 
             stage("Report results") {
                 println("to be implemented")
