@@ -23,6 +23,9 @@ env.BDK_INTEGRATION_TESTS_ORG = env.BDK_INTEGRATION_TESTS_ORG ?: "SymphonyOSF"
 env.WEBHOOK_URL = "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
 
 IS_BOT_FORCED_TO_TERMINATE = false
+JBOT_FAILED_TEST_CASES = ""
+JBOT_TOTAL_TEST_CASES = 0
+JBOT_TOTAL_FAILED_TEST_CASES = 0
 
 def privateKeyContent = "default-value"
 def publicKeyContent = "default-value"
@@ -172,7 +175,7 @@ node() {
 
             stage("Report results") {
                 sbeBranch = env.EPOD1_SBE_ORG + "/" + env.EPOD1_SBE_BRANCH
-                notificationMessage = getMessageMLNotificationTemplate(sbeBranch, env.AGENT_GIT)
+                notificationMessage = getMessageMLNotificationTemplate(sbeBranch, env.AGENT_GIT, env.RUN_JAVA_BOT.toBoolean(), JBOT_TOTAL_TEST_CASES, JBOT_TOTAL_FAILED_TEST_CASES, JBOT_FAILED_TEST_CASES)
 
                 println notificationMessage
                 //adds the string content to a file in the workspace. It allows to not have to escape characters for the command
@@ -277,12 +280,18 @@ def integrationTestsStage(targetPodName) {
     return {
         stage("Running BDK Integration tests") {
             sh 'sleep 60' // Sleep 60s to give more time to JBot/Pbot to be up
-            executeBdkIntegrationTests(targetPodName)
-            IS_BOT_FORCED_TO_TERMINATE = true
 
+            try {
+                executeBdkIntegrationTests(targetPodName)
+            } catch (error) {
+                // ignore the error
+            }
+
+            IS_BOT_FORCED_TO_TERMINATE = true
             archiveArtifacts(artifacts: '**/target/failsafe-reports/TEST-com.symphony.bdk.integrationtest.*.xml', allowEmptyArchive: true)
             prepareTestsReport()
 
+            // throw exception to force parallel stages to terminate
             throw new Exception("Bot is forced to terminate as integration tests are done.")
         }
     }
@@ -290,19 +299,43 @@ def integrationTestsStage(targetPodName) {
 
 def prepareTestsReport() {
     failedTestCases = sh(script:"cd bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports && xmllint --xpath '//failure/../@name' TEST-*.xml", returnStdout: true)
-    sh "echo ${failedTestCases}"
+    failedTestCasesSplit = failedTestCases.replace("\"", "").split("name=")
+
+    JBOT_TOTAL_TEST_CASES = sh(script: "cd bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports && xmllint --xpath '//completed/text()' failsafe-summary.xml", returnStdout: true)
+
+    failedTestCasesSplit.each() {
+        JBOT_TOTAL_FAILED_TEST_CASES += 1
+        JBOT_FAILED_TEST_CASES += it + "\n"
+    }
 }
 
-def getMessageMLNotificationTemplate(sbeBranch, agentBranch) {
+def getMessageMLNotificationTemplate(sbeBranch, agentBranch, isJbotExecuted, jbotTotal, jbotFailedTotal, jbotFailedTestCases) {
     Date date = new Date()
     def currentDay = new SimpleDateFormat("MM/dd/yyyy").format(date)
+
+    def jbotSummary = "<p>Java BDK Tests did not run</p>"
+    def pbotSummary = "<p>Python BDK Tests did not run</p>"
+    if (isJbotExecuted) {
+        jbotSummary =  "<p>Total executed tests: {JBOT_TOTAL}</p><br/>" +
+                       "<p>Failed test cases: {JBOT_FAILED_TOTAL}/{JBOT_TOTAL}</p><br/>"
+                       "<p>{JBOT_FAILED_CASES}</p>"
+        jbotSummary = jbotSummary.replace('{JBOT_TOTAL}', jbotTotal.toString())
+        jbotSummary = jbotSummary.replace('{JBOT_FAILED_TOTAL}', jbotFailedTotal.toString())
+        jbotSummary = jbotSummary.replace('{JBOT_FAILED_CASES}', jbotFailedTestCases)
+    }
+
     def messageML = """<messageML>
                             <br/>
-                                <h4>BDK Integration Tests - SBE: {SBE_BRANCH} - Agent {AGENT_BRANCH} ({CURRENT_DATE})</h4>
-                                <card accent="tempo-bg-color--blue" iconSrc="./images/favicon.png">
-                                    <p>TEST OK</p>
-                                </card>
-                       </messageML>"""
+                            <h4>BDK Integration Tests - SBE: {SBE_BRANCH} - Agent {AGENT_BRANCH} ({CURRENT_DATE})</h4>
+                            <card accent="tempo-bg-color--blue" iconSrc="./images/favicon.png">
+                                <h4>Java BDK tests summary:</h4>
+                                ${jbotSummary}
+                            </card>
+                            <card accent="tempo-bg-color--blue" iconSrc="./images/favicon.png">
+                                <h4>Python BDK tests summary:</h4>
+                                ${pbotSummary}
+                            </card>
+                      </messageML>"""
     messageML = messageML.replace('{SBE_BRANCH}', sbeBranch)
     messageML = messageML.replace('{AGENT_BRANCH}', agentBranch)
     messageML = messageML.replace('{CURRENT_DATE}', currentDay)
