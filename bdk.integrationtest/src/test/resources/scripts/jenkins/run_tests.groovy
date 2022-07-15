@@ -55,6 +55,8 @@ node() {
                 sh 'wget -nc -q https://github.com/mikefarah/yq/releases/download/v4.18.1/yq_linux_amd64'
                 sh 'mv yq_linux_amd64 yq && chmod +x yq'
                 sh './yq --version'
+
+                sh "apt-get install -y libxml2-utils"
             }
 
              stage("Retrieve secrets") {
@@ -244,7 +246,7 @@ def updatePbotConfig(podHost) {
 
 def executeBdkIntegrationTests(podName) {
     echo "Executing BDK Integration Tests"
-    sh  "cd bdk-intergation-tests/bdk.integrationtest && mvn clean install -B -Pci -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${podName}' -DusingPods='${podName}' -DintegrationTestsBotUsername='${env.INTEGRATION_TESTS_BOT_USERNAME}' -DintegrationTestsWorkerUsername='${env.WORKER_BOT_USERNAME}'"
+    sh  "cd bdk-intergation-tests/bdk.integrationtest && mvn verify -B -Pci -Dfile.encoding='UTF-8' -DepodDeploymentName='deploymentnametochange' -DpodsEnvironment='${podName}' -DusingPods='${podName}' -DintegrationTestsBotUsername='${env.INTEGRATION_TESTS_BOT_USERNAME}' -DintegrationTestsWorkerUsername='${env.WORKER_BOT_USERNAME}'"
 }
 
 def configureMavenSettings() {
@@ -277,12 +279,21 @@ def integrationTestsStage(targetPodName) {
             sh 'sleep 60' // Sleep 60s to give more time to JBot/Pbot to be up
             executeBdkIntegrationTests(targetPodName)
             IS_BOT_FORCED_TO_TERMINATE = true
+
+            archiveArtifacts(artifacts: '**/target/failsafe-reports/TEST-com.symphony.bdk.integrationtest.*.xml', allowEmptyArchive: true)
+            prepareTestsReport()
+
             throw new Exception("Bot is forced to terminate as integration tests are done.")
         }
     }
 }
 
-def getMessageMLNotificationTemplate(templateName, sbeBranch, agentBranch) {
+def prepareTestsReport() {
+    failedTestCases = sh(script:"ls -a && cd bdk-intergation-tests && ls -a && cd bdk.integrationtest && ls -a && cd target && ls -a && cd failsafe-reports && xmllint --xpath '//failure/../@name' TEST-*.xml", returnStdout: true)
+    sh "echo ${failedTestCases}"
+}
+
+def getMessageMLNotificationTemplate(sbeBranch, agentBranch) {
     Date date = new Date()
     def currentDay = new SimpleDateFormat("MM/dd/yyyy").format(date)
     def messageML = """<messageML>

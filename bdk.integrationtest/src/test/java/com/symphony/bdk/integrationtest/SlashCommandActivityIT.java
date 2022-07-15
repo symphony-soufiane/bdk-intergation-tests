@@ -16,13 +16,17 @@ import org.assertj.core.api.Fail;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @SpringBootTest
-class SlashCommandActivityTests {
+class SlashCommandActivityIT {
+
+	private static final Logger LOG = LoggerFactory.getLogger(SlashCommandActivityIT.class);
 
 	private static V3RoomDetail testStream;
 	private static Long workerBotUserId;
@@ -47,6 +51,8 @@ class SlashCommandActivityTests {
 			// Create new room
 			testStream =
 					StreamUtils.createRoom("BDK_INTEGRATION_TESTS_RUN_" + new RandomString().nextString());
+			LOG.info("Created stream with id {} and name {}", testStream.getRoomSystemInfo().getId(),
+					testStream.getRoomAttributes().getName());
 
 			// Add members to the room
 			StreamUtils.addRoomMember(testStream.getRoomSystemInfo().getId(), integrationTestsBotUserId);
