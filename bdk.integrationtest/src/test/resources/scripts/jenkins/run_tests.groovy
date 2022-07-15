@@ -289,7 +289,7 @@ def integrationTestsStage(targetPodName) {
 }
 
 def prepareTestsReport() {
-    failedTestCases = sh(script:"ls -a && cd bdk-intergation-tests && ls -a && cd bdk.integrationtest && ls -a && cd target && ls -a && cd failsafe-reports && xmllint --xpath '//failure/../@name' TEST-*.xml", returnStdout: true)
+    failedTestCases = sh(script:"cd bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports && xmllint --xpath '//failure/../@name' TEST-*.xml", returnStdout: true)
     sh "echo ${failedTestCases}"
 }
 
