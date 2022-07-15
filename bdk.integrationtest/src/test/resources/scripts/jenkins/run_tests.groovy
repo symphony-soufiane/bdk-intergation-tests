@@ -3,8 +3,8 @@ package scripts.jenkins
 import java.text.SimpleDateFormat
 @Library("sym-pipeline") _
 
-env.TARGET_POD_NAME = env.TARGET_POD_NAME ?: "localhost" //develop
-env.TARGET_POD_HOST = env.TARGET_POD_HOST ?: "localhost.symphony.com" //https://develop.symphony.com
+env.TARGET_POD_NAME = env.TARGET_POD_NAME ?: "localhost"
+env.TARGET_POD_HOST = env.TARGET_POD_HOST ?: "localhost.symphony.com"
 env.CREATE_EPODS = env.CREATE_EPODS ?: true
 env.EPOD1_SBE_ORG = env.EPOD1_SBE_ORG ?: "SymphonyOSF"
 env.EPOD1_SBE_BRANCH = env.EPOD1_SBE_BRANCH ?: "dev"
@@ -12,17 +12,18 @@ env.EPOD2_SBE_ORG = env.EPOD1_SBE_ORG ?: "SymphonyOSF"
 env.EPOD2_SBE_BRANCH = env.EPOD1_SBE_BRANCH ?: "dev"
 env.AGENT_GIT = env.AGENT_GIT ?: "SymphonyOSF:master"
 env.EPODS_TIME_TO_LIVE = env.EPODS_TIME_TO_LIVE ?: 0
-env.TARGET_POD_ADMIN_USERNAME = env.TARGET_POD_ADMIN_USERNAME ?: "admin@symphony.com" //bdk-integration-tests-user-3
-env.TARGET_POD_ADMIN_PASSWORD = env.TARGET_POD_ADMIN_PASSWORD ?: "password" //OHaXXjI+vQ+2WDNZG6yCnQ
-env.INTEGRATION_TESTS_BOT_USERNAME = env.INTEGRATION_TESTS_BOT_USERNAME ?: "bdk-integration-tests-service-user-TEST1" //bdk-integration-tests-service-user-TEST1
-env.WORKER_BOT_USERNAME = env.WORKER_BOT_USERNAME ?: "bdk-integration-tests-worker-bot-TEST1" //bdk-integration-tests-worker-bot-TEST1
+env.TARGET_POD_ADMIN_USERNAME = env.TARGET_POD_ADMIN_USERNAME ?: "admin@symphony.com"
+env.TARGET_POD_ADMIN_PASSWORD = env.TARGET_POD_ADMIN_PASSWORD ?: "password"
+env.INTEGRATION_TESTS_BOT_USERNAME = env.INTEGRATION_TESTS_BOT_USERNAME ?: "bdk-integration-tests-service-user-TEST1"
+env.WORKER_BOT_USERNAME = env.WORKER_BOT_USERNAME ?: "bdk-integration-tests-worker-bot-TEST1"
 env.RUN_JAVA_BOT = env.RUN_JAVA_BOT ?: true
 env.RUN_PYTHON_BOT = env.RUN_PYTHON_BOT ?: true
 env.BDK_INTEGRATION_TESTS_BRANCH = env.BDK_INTEGRATION_TESTS_BRANCH ?: "main"
 env.BDK_INTEGRATION_TESTS_ORG = env.BDK_INTEGRATION_TESTS_ORG ?: "SymphonyOSF"
+env.WEBHOOK_URL = "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
 
-def WEBHOOK_URL = "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
-def BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE = "Error to force bot termination"
+IS_BOT_FORCED_TO_TERMINATE = false
+
 def privateKeyContent = "default-value"
 def publicKeyContent = "default-value"
 def botPid = "default-value"
@@ -131,8 +132,9 @@ node() {
                     parallel(buildStage)
                 }
             } catch(error) {
-                if (BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE == "${error.message}") {
+                if ("${IS_BOT_FORCED_TO_TERMINATE}".toBoolean() == true) {
                     echo "Expected error caught: JBot has been forced to terminate as integration tests are done."
+                    IS_BOT_FORCED_TO_TERMINATE = false
                 } else {
                     echo "Unexpected error caught."
                     throw error
@@ -157,8 +159,9 @@ node() {
                     parallel(buildStage)
                 }
             } catch(error) {
-                if (BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE == "${error.message}") {
+                if ("${IS_BOT_FORCED_TO_TERMINATE}".toBoolean() == true) {
                     echo "Expected error caught: PBot has been forced to terminate as integration tests are done."
+                    IS_BOT_FORCED_TO_TERMINATE = false
                 } else {
                     echo "Unexpected error caught."
                     throw error
@@ -166,10 +169,13 @@ node() {
             }
 
             stage("Report results") {
-                println("to be implemented")
                 sbeBranch = env.EPOD1_SBE_ORG + "/" + env.EPOD1_SBE_BRANCH
-                notificationMessage = getMessageMLNotificationTemplate("reportNotification.html", sbeBranch, env.AGENT_GIT)
-                sendMessageMLNotification(WEBHOOK_URL, notificationMessage)
+                notificationMessage = getMessageMLNotificationTemplate(sbeBranch, env.AGENT_GIT)
+
+                println notificationMessage
+                //adds the string content to a file in the workspace. It allows to not have to escape characters for the command
+                writeFile file: 'message-ml-content.xml', text: notificationMessage, encoding: 'UTF-8'
+                sh "curl -L -X POST -H 'Content-Type: multipart/form-data' -F 'message=@message-ml-content.xml' ${env.WEBHOOK_URL}"
             }
         } catch (error) {
             echo "Error while running the pipeline: ${error}"
@@ -250,7 +256,7 @@ def jbotStage() {
     return {
         stage("Running JBot") {
             // JBot will timeout after 2m to release the pipeline progress
-            sh "cd jbot && timeout -s KILL 2m ./gradlew bootRun || true"
+            sh "cd jbot && ./gradlew bootRun"
         }
     }
 }
@@ -260,7 +266,7 @@ def pbotStage() {
         stage("Running PBot") {
             // PBot will timeout after 2m to release the pipeline progress
             sh "cd pbot && pip install -r requirements.txt"
-            sh "cd pbot && timeout -s KILL 2m python -m src"
+            sh "cd pbot && python -m src"
         }
     }
 }
@@ -270,7 +276,8 @@ def integrationTestsStage(targetPodName) {
         stage("Running BDK Integration tests") {
             sh 'sleep 60' // Sleep 60s to give more time to JBot/Pbot to be up
             executeBdkIntegrationTests(targetPodName)
-            throw new Exception(BOT_FORCE_TERMINATION_EXCEPTION_MESSAGE)
+            IS_BOT_FORCED_TO_TERMINATE = true
+            throw new Exception("Bot is forced to terminate as integration tests are done.")
         }
     }
 }
@@ -278,15 +285,15 @@ def integrationTestsStage(targetPodName) {
 def getMessageMLNotificationTemplate(templateName, sbeBranch, agentBranch) {
     Date date = new Date()
     def currentDay = new SimpleDateFormat("MM/dd/yyyy").format(date)
-    def messageML = readFile encoding: 'UTF-8', file: "scripts/jenkins/templates/$templateName"
+    def messageML = """<messageML>
+                            <br/>
+                                <h4>BDK Integration Tests - SBE: {SBE_BRANCH} - Agent {AGENT_BRANCH} ({CURRENT_DATE})</h4>
+                                <card accent="tempo-bg-color--blue" iconSrc="./images/favicon.png">
+                                    <p>TEST OK</p>
+                                </card>
+                       </messageML>"""
     messageML = messageML.replace('{SBE_BRANCH}', sbeBranch)
     messageML = messageML.replace('{AGENT_BRANCH}', agentBranch)
+    messageML = messageML.replace('{CURRENT_DATE}', currentDay)
     return messageML
-}
-
-def sendMessageMLNotification(webhookUrl, message) {
-    println message
-    //adds the string content to a file in the workspace. It allows to not have to escape characters for the command
-    writeFile file: 'message-ml-content.xml', text: message, encoding: 'UTF-8'
-    sh "curl -L -X POST -H 'Content-Type: multipart/form-data' -F 'message=@message-ml-content.xml' ${webhookUrl}"
 }
