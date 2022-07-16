@@ -139,6 +139,7 @@ node() {
             } catch(error) {
                 if ("${IS_BOT_FORCED_TO_TERMINATE}".toBoolean() == true) {
                     echo "Expected error caught: JBot has been forced to terminate as integration tests are done."
+                    echo "actual error: ${error}"
                     IS_BOT_FORCED_TO_TERMINATE = false
                 } else {
                     echo "Unexpected error caught."
@@ -298,19 +299,22 @@ def integrationTestsStage(targetPodName) {
 }
 
 def prepareTestsReport() {
-    try {
-        failedTestCases = sh(script:"cd bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports && xmllint --xpath '//failure/../@name' TEST-*.xml", returnStdout: true)
-    } catch (error) { // an error is thrown when no xpath set is found
-        println "No failed test cases found in failsafe-reports xpath query"
-        failedTestCases = ""
-    }
+
+    /* Write output in file for these reasons:
+        The command exit status is non zero when the xmllint result is empty which makes the step failing. Returning the status avoid that
+        xmllint logs are only printed in the output and only the results go to the file
+    */
+    failedTestCases = sh(script:"xmllint --xpath '//failure/../@name' bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports/TEST-*.xml > xmllintOutput.txt", returnStatus: true)
+    failedTestCases = readFile "${env.WORKSPACE}/xmllintOutput.txt"
 
     if (failedTestCases.trim()) { // not empty
         def failedTestCasesSplit = failedTestCases.replace("\"", "").split("name=")
         failedTestCasesSplit.each() {
-            JBOT_TOTAL_FAILED_TEST_CASES += 1
-            JBOT_FAILED_TEST_CASES += it + "\n"
+            if (failedTestCasesSplit.trim()) { // not empty string
+                JBOT_TOTAL_FAILED_TEST_CASES += 1
+            }
         }
+        JBOT_FAILED_TEST_CASES = failedTestCasesSplit
     }
 
     JBOT_TOTAL_TEST_CASES = sh(script: "cd bdk-intergation-tests/bdk.integrationtest/target/failsafe-reports && xmllint --xpath '//completed/text()' failsafe-summary.xml", returnStdout: true)
@@ -330,9 +334,11 @@ def getMessageMLNotificationTemplate(sbeBranch, agentBranch, isJbotExecuted, jbo
             jbotSummary = "<span class='tempo-text-color--green'><h4>Java BDK tests summary: SUCCESS</h4></span>"
         } else {
             jbotSummary = "<span class='tempo-text-color--red'><h4>Java BDK tests summary: {JBOT_FAILED_TOTAL}/{JBOT_TOTAL} TESTS FAILED</h4></span><p><br/>Click for details</p>"
-            jbotSummary += '<br/>'
-            jbotDetails = "<p>{JBOT_FAILED_CASES}</p>"
-            jbotDetails = jbotDetails.replace('{JBOT_FAILED_CASES}', jbotFailedTestCases)
+            jbotFailedTestCases.each() {
+                if (it.trim()) { // not empty string
+                    jbotDetails += "<br/><p>${it}</p>"
+                }
+            }
         }
 
         jbotSummary = jbotSummary.replace('{JBOT_TOTAL}', jbotTotal.toString())
