@@ -20,7 +20,7 @@ env.RUN_JAVA_BOT = env.RUN_JAVA_BOT ?: true
 env.RUN_PYTHON_BOT = env.RUN_PYTHON_BOT ?: true
 env.BDK_INTEGRATION_TESTS_BRANCH = env.BDK_INTEGRATION_TESTS_BRANCH ?: "main"
 env.BDK_INTEGRATION_TESTS_ORG = env.BDK_INTEGRATION_TESTS_ORG ?: "SymphonyOSF"
-env.WEBHOOK_URL = "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
+env.WEBHOOK_URL = env.WEBHOOK_URL ?: "https://corporate.symphony.com/integration/v1/whi/simpleWebHookIntegration/5810d144e4b0f884b709cc90/62cf0c1a286be962ac8bc61a"
 
 IS_BOT_FORCED_TO_TERMINATE = false
 JBOT_FAILED_TEST_CASES = ""
