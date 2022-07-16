@@ -79,7 +79,7 @@ node() {
                         [$class: 'StringBinding', credentialsId: 'symphonyjenkinsauto-token', variable: 'TOKEN']]) {
 
                     sh "mkdir bdk-intergation-tests"
-                    checkoutBdkIntergationTestsBranch("symphony-soufiane", "main")
+                    checkoutBdkIntergationTestsBranch(env.BDK_INTEGRATION_TESTS_ORG, env.BDK_INTEGRATION_TESTS_BRANCH)
 
                     copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${env.INTEGRATION_TESTS_BOT_USERNAME}-private.pem", privateKeyContent)
                     copyContentToFile("bdk-intergation-tests/bdk.integrationtest/src/main/resources/rsa", "${env.INTEGRATION_TESTS_BOT_USERNAME}-public.pem", publicKeyContent)
