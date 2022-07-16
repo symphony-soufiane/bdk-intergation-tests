@@ -310,8 +310,11 @@ def prepareTestsReport() {
     if (failedTestCases.trim()) { // not empty
         def failedTestCasesSplit = failedTestCases.replace("\"", "").split("name=")
         failedTestCasesSplit.each() {
-            if (failedTestCasesSplit.trim()) { // not empty string
+            if (it.trim()) { // not empty string
                 JBOT_TOTAL_FAILED_TEST_CASES += 1
+            } else {
+                // remove empty items
+                failedTestCasesSplit -= it
             }
         }
         JBOT_FAILED_TEST_CASES = failedTestCasesSplit
@@ -335,9 +338,7 @@ def getMessageMLNotificationTemplate(sbeBranch, agentBranch, isJbotExecuted, jbo
         } else {
             jbotSummary = "<span class='tempo-text-color--red'><h4>Java BDK tests summary: {JBOT_FAILED_TOTAL}/{JBOT_TOTAL} TESTS FAILED</h4></span><p><br/>Click for details</p>"
             jbotFailedTestCases.each() {
-                if (it.trim()) { // not empty string
-                    jbotDetails += "<br/><p>${it}</p>"
-                }
+                jbotDetails += "<br/><p>${it}</p>"
             }
         }
 
